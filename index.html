@@ -98,16 +98,15 @@
             const codeChallenge = btoa(String.fromCharCode(...new Uint8Array(digest)))
                 .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 
-            const params = new URLSearchParams({
-                client_id: appId,
-                redirect_uri: redirectUri,
-                response_type: "code",
-                scope: "trade",
-                state: state,
-                code_challenge: codeChallenge,
-                code_challenge_method: "S256"
-            });
-
+           const params = new URLSearchParams({
+    client_id: appId,
+    redirect_uri: redirectUri,
+    response_type: "code",
+    scope: "trade", // Sesuaikan dengan scope yang dicentang/diaktifkan di Dashboard Deriv Anda
+    state: state,
+    code_challenge: codeChallenge,
+    code_challenge_method: "S256"
+});
             window.location.href = "https://auth.deriv.com/oauth2/auth?" + params.toString();
         }
 
