@@ -298,33 +298,39 @@
         }
 
         // Sambungkan Koneksi WebSocket
-        function connectDerivWebSocket(token) {
-            // Penggunaan App ID angka 1089 untuk kompatibilitas jalur WebSocket handshake
-            const wsUrl = `wss://ws.derivws.com/websockets/v3?app_id=1089`;
-            ws = new WebSocket(wsUrl);
+        // Sambungkan Koneksi WebSocket menggunakan App ID dari kolom input
+function connectDerivWebSocket(token) {
+    const clientId = document.getElementById('client_id').value.trim();
+    if (!clientId) {
+        alert('OAuth Client ID / App ID tidak boleh kosong!');
+        return;
+    }
 
-            ws.onopen = () => {
-                // Kirim otorisasi akun membawa token asli Anda
-                ws.send(JSON.stringify({ authorize: token }));
-            };
+    // Mengambil langsung dari input OAuth Client ID tanpa hardcode angka 1089
+    const wsUrl = `wss://ws.derivws.com/websockets/v3?app_id=${clientId}`;
+    ws = new WebSocket(wsUrl);
 
-            ws.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                handleMessage(data);
-            };
+    ws.onopen = () => {
+        ws.send(JSON.stringify({ authorize: token }));
+    };
 
-            ws.onerror = () => {
-                const errEl = document.getElementById('login-error');
-                errEl.innerText = 'Koneksi WebSocket gagal terhubung ke server.';
-                errEl.classList.remove('hidden');
-            };
+    ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        handleMessage(data);
+    };
 
-            ws.onclose = () => {
-                document.getElementById('connection-badge').className = "flex items-center space-x-2 bg-slate-800 px-3 py-1.5 rounded-full text-xs font-medium text-amber-400 border border-slate-700";
-                document.getElementById('badge-text').innerText = 'Terputus';
-                if (isRunning) stopBot();
-            };
-        }
+    ws.onerror = () => {
+        const errEl = document.getElementById('login-error');
+        errEl.innerText = 'Koneksi WebSocket gagal terhubung ke server.';
+        errEl.classList.remove('hidden');
+    };
+
+    ws.onclose = () => {
+        document.getElementById('connection-badge').className = "flex items-center space-x-2 bg-slate-800 px-3 py-1.5 rounded-full text-xs font-medium text-amber-400 border border-slate-700";
+        document.getElementById('badge-text').innerText = 'Terputus';
+        if (isRunning) stopBot();
+    };
+}
 
         function handleLogout() {
             if (ws) ws.close();
