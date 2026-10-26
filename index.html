@@ -86,7 +86,6 @@
 
             localStorage.setItem('deriv_client_id', clientId);
 
-            // Generate PKCE code_verifier
             const array = crypto.getRandomValues(new Uint8Array(64));
             const codeVerifier = Array.from(array)
                 .map(v => 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~'[v % 66])
@@ -102,12 +101,10 @@
 
             const state = crypto.randomUUID();
 
-            // Simpan parameter autentikasi ke session storage sesuai instruksi CS
             sessionStorage.setItem('pkce_code_verifier', codeVerifier);
             sessionStorage.setItem('oauth_state', state);
             sessionStorage.setItem('pending_client_id', clientId);
 
-            // Menetapkan redirect_uri secara tetap sesuai saran CS
             const redirectUri = "https://alsbinary.github.io/advanced-bot/oauth-callback.html";
 
             const params = new URLSearchParams({
