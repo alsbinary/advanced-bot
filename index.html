@@ -299,37 +299,39 @@
         }
 
         // Sambungkan Koneksi WebSocket menggunakan App ID dari input OAuth Client ID
-        function connectDerivWebSocket(token) {
-            const clientId = document.getElementById('client_id').value.trim();
-            if (!clientId) {
-                alert('OAuth Client ID tidak boleh kosong!');
-                return;
-            }
+        // Sambungkan Koneksi WebSocket menggunakan App ID berformat Angka
+function connectDerivWebSocket(token) {
+    const wsAppId = document.getElementById('ws_app_id').value.trim();
+    if (!wsAppId || isNaN(wsAppId)) {
+        alert('WebSocket App ID wajib diisi berupa angka (contoh: 1089)!');
+        return;
+    }
 
-            const wsUrl = `wss://ws.derivws.com/websockets/v3?app_id=${clientId}`;
-            ws = new WebSocket(wsUrl);
+    // URL WebSocket menggunakan App ID berbentuk angka agar tidak terjadi error 520
+    const wsUrl = `wss://ws.derivws.com/websockets/v3?app_id=${wsAppId}`;
+    ws = new WebSocket(wsUrl);
 
-            ws.onopen = () => {
-                ws.send(JSON.stringify({ authorize: token }));
-            };
+    ws.onopen = () => {
+        ws.send(JSON.stringify({ authorize: token }));
+    };
 
-            ws.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                handleMessage(data);
-            };
+    ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        handleMessage(data);
+    };
 
-            ws.onerror = () => {
-                const errEl = document.getElementById('login-error');
-                errEl.innerText = 'Koneksi WebSocket gagal terhubung ke server.';
-                errEl.classList.remove('hidden');
-            };
+    ws.onerror = () => {
+        const errEl = document.getElementById('login-error');
+        errEl.innerText = 'Koneksi WebSocket gagal terhubung ke server.';
+        errEl.classList.remove('hidden');
+    };
 
-            ws.onclose = () => {
-                document.getElementById('connection-badge').className = "flex items-center space-x-2 bg-slate-800 px-3 py-1.5 rounded-full text-xs font-medium text-amber-400 border border-slate-700";
-                document.getElementById('badge-text').innerText = 'Terputus';
-                if (isRunning) stopBot();
-            };
-        }
+    ws.onclose = () => {
+        document.getElementById('connection-badge').className = "flex items-center space-x-2 bg-slate-800 px-3 py-1.5 rounded-full text-xs font-medium text-amber-400 border border-slate-700";
+        document.getElementById('badge-text').innerText = 'Terputus';
+        if (isRunning) stopBot();
+    };
+}
 
         function handleLogout() {
             if (ws) ws.close();
