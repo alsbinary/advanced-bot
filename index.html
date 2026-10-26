@@ -72,6 +72,7 @@
 
             if (savedClientId) document.getElementById('client_id').value = savedClientId;
 
+            // Jika token sudah ada, hubungkan WebSocket dan otorisasi menggunakan Bearer/Token OAuth
             if (accessToken && savedClientId) {
                 connectDerivWebSocket(accessToken, savedClientId);
             }
@@ -125,6 +126,7 @@
             ws = new WebSocket(wsUrl);
 
             ws.onopen = () => {
+                // Kirim autorisasi menggunakan access token OAuth
                 ws.send(JSON.stringify({ authorize: token }));
             };
 
