@@ -30,20 +30,29 @@
             <div class="text-center space-y-2">
                 <div class="inline-block bg-blue-600/20 text-blue-400 font-semibold px-3 py-1 rounded-full text-xs border border-blue-500/30">Deriv API Gateway</div>
                 <h2 class="text-lg font-bold text-white">Masuk ke Dashboard Bot</h2>
-                <p class="text-xs text-slate-400">Masukkan API Token (pat_...) Anda untuk mulai terhubung.</p>
+                <p class="text-xs text-slate-400">Pilih metode login OAuth Deriv atau masukkan API Token secara manual.</p>
             </div>
 
             <div class="space-y-4 text-xs">
                 <div>
-                    <label class="block font-medium text-slate-400 mb-1">OAuth Client ID / App ID</label>
+                    <label class="block font-medium text-slate-400 mb-1">OAuth Client ID</label>
                     <input type="text" id="client_id" value="34M4TGKofeTRkL0lcJ9zO" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2.5 text-slate-200 focus:outline-none focus:border-blue-500">
                 </div>
                 
-                <div>
-                    <label class="block font-medium text-slate-400 mb-1">API Token (pat_...)</label>
-                    <input type="password" id="manual_token" placeholder="Tempel token pat_... di sini" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2.5 text-slate-200 focus:outline-none focus:border-blue-500">
+                <!-- Tombol Login OAuth -->
+                <button onclick="loginWithDerivOAuth()" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold py-3 rounded-xl transition shadow-lg tracking-wider">LOGIN VIA DERIV (OAUTH)</button>
+                
+                <div class="relative flex py-2 items-center">
+                    <div class="flex-grow border-t border-slate-800"></div>
+                    <span class="flex-shrink mx-4 text-slate-500 text-[10px] uppercase">Atau Gunakan Token Manual</span>
+                    <div class="flex-grow border-t border-slate-800"></div>
                 </div>
-                <button onclick="handleManualLogin()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition shadow-lg tracking-wider">HUBUNGKAN WEBSOCKET</button>
+
+                <div>
+                    <label class="block font-medium text-slate-400 mb-1">API Token (Trade & Account Management)</label>
+                    <input type="password" id="manual_token" placeholder="Tempel token (pat_...) di sini..." class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2.5 text-slate-200 focus:outline-none focus:border-blue-500">
+                </div>
+                <button onclick="handleManualLogin()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition shadow-lg tracking-wider">HUBUNGKAN DENGAN TOKEN</button>
             </div>
             <div id="login-error" class="text-rose-400 text-xs text-center hidden"></div>
         </div>
@@ -61,7 +70,7 @@
                     <h2 class="text-xs font-bold text-emerald-400 uppercase tracking-widest flex items-center">
                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-2 animate-pulse"></span> Connected
                     </h2>
-                    <button onclick="handleLogout()" class="text-rose-400 hover:text-rose-300 underline text-[10px]">Keluar</button>
+                    <button onclick="handleLogout()" class="text-rose-400 hover:text-rose-300 underline text-[10px]">Keluar / Switch Akun</button>
                 </div>
                 <div class="space-y-2 text-xs">
                     <div class="flex justify-between"><span class="text-slate-400">Nomor Akun:</span> <span id="acc-loginid" class="font-mono font-bold text-cyan-300">-</span></div>
@@ -133,8 +142,7 @@
                                 <span class="w-1.5 h-1.5 rounded-full bg-blue-400 mr-2"></span> Strategy Table Config
                             </h2>
                             <div class="space-x-1">
-                                <button onclick="openAddStrategyModal()" class="bg-blue-600 hover:bg-blue-500 text-[10px] px-2 py-1 rounded text-white font-semibold shadow">+ Add Level</button>
-                                <button onclick="clearStrategyTable()" class="bg-slate-800 hover:bg-slate-700 text-[10px] px-2 py-1 rounded text-rose-300 border border-slate-700">Clear</button>
+                                <button onclick="alert('Fitur tambah level bisa dikustomisasi lanjutan.')" class="bg-blue-600 hover:bg-blue-500 text-[10px] px-2 py-1 rounded text-white font-semibold shadow">+ Add Level</button>
                             </div>
                         </div>
                         <div class="max-h-48 overflow-auto border border-slate-800 rounded-lg bg-slate-950">
@@ -221,8 +229,9 @@
 
     </main>
 
-    <!-- JavaScript Logika Eksekusi -->
+    <!-- JavaScript Logika Utama -->
     <script>
+        // Jam GMT Realtime
         setInterval(() => {
             const now = new Date();
             document.getElementById('gmt-time').innerText = now.toUTCString().slice(17, 25);
@@ -237,6 +246,43 @@
         let wins = 0;
         let losses = 0;
 
+        // Tangkap token dari URL Hash (hasil OAuth pengalihan Deriv) saat halaman dimuat
+        window.onload = function() {
+            const hash = window.location.hash.substring(1);
+            const hashParams = new URLSearchParams(hash);
+            
+            let extractedToken = '';
+            for (const [key, value] of hashParams.entries()) {
+                if (key.startsWith('token')) {
+                    extractedToken = value;
+                    break;
+                }
+            }
+
+            if (extractedToken) {
+                // Bersihkan URL hash agar tampilan rapi
+                window.history.replaceState({}, document.title, window.location.pathname);
+                connectDerivWebSocket(extractedToken);
+            }
+        };
+
+        // Redirect ke OAuth Deriv secara Dinamis mengikuti URL Domain (GitHub Pages / Localhost)
+        function loginWithDerivOAuth() {
+            const clientId = document.getElementById('client_id').value.trim();
+            if (!clientId) {
+                alert('OAuth Client ID wajib diisi!');
+                return;
+            }
+
+            // Mengambil URL domain saat ini tanpa hash fragment
+            const currentUrl = window.location.href.split('#')[0];
+            const redirectUri = encodeURIComponent(currentUrl);
+
+            const authUrl = `https://oauth.deriv.com/oauth2/authorize?app_id=${clientId}&l=EN&brand=deriv&redirect_uri=${redirectUri}`;
+            window.location.href = authUrl;
+        }
+
+        // Login Manual Menggunakan Input API Token
         function handleManualLogin() {
             const token = document.getElementById('manual_token').value.trim();
             const errEl = document.getElementById('login-error');
@@ -251,13 +297,14 @@
             connectDerivWebSocket(token);
         }
 
+        // Sambungkan Koneksi WebSocket
         function connectDerivWebSocket(token) {
-            // WebSocket menggunakan App ID angka untuk koneksi handshakenya, 
-            // sementara otorisasi akun divalidasi menggunakan token pat_ Anda melalui pesan authorize.
+            // Penggunaan App ID angka 1089 untuk kompatibilitas jalur WebSocket handshake
             const wsUrl = `wss://ws.derivws.com/websockets/v3?app_id=1089`;
             ws = new WebSocket(wsUrl);
 
             ws.onopen = () => {
+                // Kirim otorisasi akun membawa token asli Anda
                 ws.send(JSON.stringify({ authorize: token }));
             };
 
@@ -284,6 +331,7 @@
             document.getElementById('dashboard-view').classList.add('hidden');
             document.getElementById('login-view').classList.remove('hidden');
             document.getElementById('manual_token').value = '';
+            window.location.hash = '';
         }
 
         function handleMessage(data) {
@@ -321,7 +369,7 @@
                 }
             } else if (msgType === 'proposal') {
                 if (data.error) {
-                    document.getElementById('bot-status-label').innerText = `Status Error: ${data.error.message}`;
+                    document.getElementById('bot-status-label').innerText = `Status Error Proposal: ${data.error.message}`;
                     setTimeout(executeNextTrade, 3000);
                 } else if (isRunning) {
                     buyContract(data.proposal.id, data.proposal.ask_price);
@@ -444,6 +492,10 @@
             document.getElementById('stat-trade-count').innerText = tradeCount;
             document.getElementById('stat-wl').innerHTML = `<span class="text-emerald-400">${wins}</span> / <span class="text-rose-400">${losses}</span>`;
             document.getElementById('stat-total-profit').innerText = `$${totalProfit.toFixed(2)}`;
+        }
+
+        function clearContractTable() {
+            document.getElementById('contract-tbody').innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-500 italic">Belum ada aktivitas perdagangan aktif.</td></tr>';
         }
 
         function addContractHistory(status, level, type, buyPrice, profit) {
