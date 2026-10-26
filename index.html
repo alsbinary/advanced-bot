@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ALS Bot Pro - Deriv Trading Engine</title>
+    <title>ALS Bot Pro - Deriv OAuth PKCE Engine</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -13,7 +13,7 @@
     <header class="bg-slate-900 border-b border-slate-800 px-6 py-3 flex justify-between items-center shadow-lg">
         <div class="flex items-center space-x-3">
             <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black px-3 py-1.5 rounded-lg text-xs tracking-wider shadow">ALS PRO</div>
-            <h1 class="text-sm font-bold tracking-wide text-slate-200">Advanced Level Strategy Web Engine</h1>
+            <h1 class="text-sm font-bold tracking-wide text-slate-200">Deriv OAuth 2.0 PKCE Trading Engine</h1>
         </div>
         <div class="flex items-center space-x-4">
             <div id="connection-badge" class="flex items-center space-x-2 bg-slate-800 px-3 py-1.5 rounded-full text-xs font-medium text-amber-400 border border-slate-700">
@@ -28,9 +28,9 @@
     <div id="login-view" class="flex-1 flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-8 shadow-2xl space-y-6">
             <div class="text-center space-y-2">
-                <div class="inline-block bg-blue-600/20 text-blue-400 font-semibold px-3 py-1 rounded-full text-xs border border-blue-500/30">Deriv API Gateway</div>
+                <div class="inline-block bg-blue-600/20 text-blue-400 font-semibold px-3 py-1 rounded-full text-xs border border-blue-500/30">Deriv OAuth 2.0 PKCE</div>
                 <h2 class="text-lg font-bold text-white">Masuk ke Dashboard Bot</h2>
-                <p class="text-xs text-slate-400">Pilih metode login OAuth Deriv atau masukkan API Token secara manual.</p>
+                <p class="text-xs text-slate-400">Gunakan otorisasi aman Deriv OAuth atau masukkan API Token manual.</p>
             </div>
 
             <div class="space-y-4 text-xs">
@@ -39,8 +39,13 @@
                     <input type="text" id="client_id" value="34M4TGKofeTRkL0lcJ9zO" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2.5 text-slate-200 focus:outline-none focus:border-blue-500">
                 </div>
                 
-                <!-- Tombol Login OAuth dengan Scope Account Management & Trade -->
-                <button onclick="loginWithDerivOAuth()" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold py-3 rounded-xl transition shadow-lg tracking-wider">LOGIN VIA DERIV (OAUTH)</button>
+                <div>
+                    <label class="block font-medium text-slate-400 mb-1">WebSocket App ID (Angka, cth: 1089)</label>
+                    <input type="number" id="ws_app_id" value="1089" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2.5 text-slate-200 focus:outline-none focus:border-blue-500">
+                </div>
+                
+                <!-- Tombol Login OAuth PKCE -->
+                <button onclick="loginWithDerivOAuthPKCE()" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold py-3 rounded-xl transition shadow-lg tracking-wider">LOGIN VIA DERIV (OAUTH PKCE)</button>
                 
                 <div class="relative flex py-2 items-center">
                     <div class="flex-grow border-t border-slate-800"></div>
@@ -63,8 +68,6 @@
         
         <!-- KOLOM KIRI: Info Akun & Statistik -->
         <div class="lg:col-span-4 flex flex-col space-y-5">
-            
-            <!-- Informasi Akun Terhubung -->
             <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-xl space-y-3">
                 <div class="flex justify-between items-center border-b border-slate-800 pb-2">
                     <h2 class="text-xs font-bold text-emerald-400 uppercase tracking-widest flex items-center">
@@ -81,7 +84,6 @@
                 </div>
             </div>
 
-            <!-- Target & Stop Loss -->
             <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-xl grid grid-cols-2 gap-3">
                 <div>
                     <label class="block text-[11px] font-medium text-slate-400 mb-1">Target Profit ($)</label>
@@ -93,7 +95,6 @@
                 </div>
             </div>
 
-            <!-- Statistik Akun & Saldo -->
             <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-xl flex-1 flex flex-col justify-between">
                 <div>
                     <h2 class="text-xs font-bold text-blue-400 uppercase tracking-widest mb-3 flex items-center">
@@ -115,11 +116,7 @@
 
         <!-- KOLOM KANAN: Portfolio, Strategy Table & Riwayat -->
         <div class="lg:col-span-8 flex flex-col space-y-5">
-            
-            <!-- Grid Atas: Portfolio & Strategy Table Config -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                
-                <!-- Portfolio Live State -->
                 <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-xl">
                     <h2 class="text-xs font-bold text-blue-400 uppercase tracking-widest mb-3 flex items-center">
                         <span class="w-1.5 h-1.5 rounded-full bg-blue-400 mr-2"></span> Portfolio Live Status
@@ -134,16 +131,12 @@
                     </div>
                 </div>
 
-                <!-- Strategy Multi-Level Config -->
                 <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-xl flex flex-col justify-between">
                     <div>
                         <div class="flex justify-between items-center mb-3">
                             <h2 class="text-xs font-bold text-blue-400 uppercase tracking-widest flex items-center">
                                 <span class="w-1.5 h-1.5 rounded-full bg-blue-400 mr-2"></span> Strategy Table Config
                             </h2>
-                            <div class="space-x-1">
-                                <button onclick="alert('Fitur tambah level bisa dikustomisasi lanjutan.')" class="bg-blue-600 hover:bg-blue-500 text-[10px] px-2 py-1 rounded text-white font-semibold shadow">+ Add Level</button>
-                            </div>
                         </div>
                         <div class="max-h-48 overflow-auto border border-slate-800 rounded-lg bg-slate-950">
                             <table class="w-full text-left text-xs whitespace-nowrap">
@@ -151,17 +144,9 @@
                                     <tr>
                                         <th class="p-2.5">ID</th>
                                         <th class="p-2.5">Level</th>
-                                        <th class="p-2.5">Contract Type</th>
+                                        <th class="p-2.5">Contract</th>
                                         <th class="p-2.5">Market</th>
-                                        <th class="p-2.5">Submarket</th>
-                                        <th class="p-2.5">Purchase Type</th>
-                                        <th class="p-2.5">High</th>
-                                        <th class="p-2.5">Low</th>
-                                        <th class="p-2.5">Expiry Type</th>
                                         <th class="p-2.5">Duration</th>
-                                        <th class="p-2.5">Unit</th>
-                                        <th class="p-2.5">Amount Type</th>
-                                        <th class="p-2.5">Cur</th>
                                         <th class="p-2.5">Amount ($)</th>
                                     </tr>
                                 </thead>
@@ -169,17 +154,9 @@
                                     <tr class="hover:bg-slate-900/50" data-symbol="R_100" data-contract="CALL" data-barrier="-0.2" data-duration="5" data-duration-unit="t">
                                         <td class="p-2.5 text-slate-400">115</td>
                                         <td class="p-2.5 font-medium text-blue-300">Level 1</td>
-                                        <td class="p-2.5">Up/Down</td>
-                                        <td class="p-2.5">Volatility</td>
-                                        <td class="p-2.5">Bull Market Index</td>
-                                        <td class="p-2.5 text-emerald-400 font-medium">Higher</td>
-                                        <td class="p-2.5">-</td>
-                                        <td class="p-2.5">-0.2</td>
-                                        <td class="p-2.5">Duration</td>
-                                        <td class="p-2.5">5</td>
-                                        <td class="p-2.5">Tick</td>
-                                        <td class="p-2.5">stake</td>
-                                        <td class="p-2.5">USD</td>
+                                        <td class="p-2.5">Higher</td>
+                                        <td class="p-2.5">Volatility 100</td>
+                                        <td class="p-2.5">5 Ticks</td>
                                         <td class="p-2.5"><input type="number" value="0.35" class="w-16 bg-slate-900 border border-slate-700 rounded px-1 text-xs level-stake text-slate-200"></td>
                                     </tr>
                                 </tbody>
@@ -187,10 +164,8 @@
                         </div>
                     </div>
                 </div>
-
             </div>
 
-            <!-- Contract History Table -->
             <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-xl flex-1 flex flex-col h-44">
                 <div class="flex justify-between items-center mb-3">
                     <h2 class="text-xs font-bold text-blue-400 uppercase tracking-widest flex items-center">
@@ -216,7 +191,6 @@
                 </div>
             </div>
 
-            <!-- Panel Tombol Eksekusi & Status Bot -->
             <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-xl flex flex-wrap gap-3 items-center justify-between">
                 <div class="flex space-x-3">
                     <button id="btn-start" onclick="startBot()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-6 py-2.5 rounded-lg text-xs transition shadow-lg tracking-wider">START BOT</button>
@@ -224,14 +198,11 @@
                 </div>
                 <div id="bot-status-label" class="text-xs text-slate-400 font-medium italic">Status: Menunggu inisialisasi...</div>
             </div>
-
         </div>
-
     </main>
 
-    <!-- JavaScript Logika Utama -->
+    <!-- JavaScript Logika OAuth 2.0 PKCE & WebSocket -->
     <script>
-        // Jam GMT Realtime
         setInterval(() => {
             const now = new Date();
             document.getElementById('gmt-time').innerText = now.toUTCString().slice(17, 25);
@@ -246,44 +217,105 @@
         let wins = 0;
         let losses = 0;
 
-        // Tangkap token dari URL Hash (hasil OAuth pengalihan Deriv) saat halaman dimuat
-        window.onload = function() {
-            const hash = window.location.hash.substring(1);
-            const hashParams = new URLSearchParams(hash);
-            
-            let extractedToken = '';
-            for (const [key, value] of hashParams.entries()) {
-                if (key.startsWith('token')) {
-                    extractedToken = value;
-                    break;
-                }
-            }
+        // Tangkap callback dari Deriv saat halaman dimuat (Parameter 'code' dan 'state')
+        window.onload = async function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const code = urlParams.get('code');
+            const state = urlParams.get('state');
 
-            if (extractedToken) {
-                // Bersihkan URL hash agar tampilan rapi
+            if (code) {
+                const savedState = sessionStorage.getItem('oauth_state');
+                const codeVerifier = sessionStorage.getItem('pkce_code_verifier');
+
+                // Validasi State untuk keamanan CSRF
+                if (state !== savedState) {
+                    alert('Error: State mismatch! Kemungkinan serangan CSRF terdeteksi.');
+                    return;
+                }
+
+                // Bersihkan URL parameter agar bersih
                 window.history.replaceState({}, document.title, window.location.pathname);
-                connectDerivWebSocket(extractedToken);
+
+                // Tukar Authorization Code dengan Access Token
+                await exchangeCodeForToken(code, codeVerifier);
             }
         };
 
-        // Redirect ke OAuth Deriv secara Dinamis dengan Scope Trade & Account Management (Admin/Read/Trade)
-        function loginWithDerivOAuth() {
+        // 1. Fungsi Membuat PKCE & Redirect ke Otorisasi OAuth Deriv
+        async function loginWithDerivOAuthPKCE() {
             const clientId = document.getElementById('client_id').value.trim();
             if (!clientId) {
                 alert('OAuth Client ID wajib diisi!');
                 return;
             }
 
-            // Mengambil URL domain saat ini tanpa hash fragment
-            const currentUrl = window.location.href.split('#')[0];
-            const redirectUri = encodeURIComponent(currentUrl);
+            // Generate code_verifier acak (43-128 karakter)[cite: 1]
+            const array = crypto.getRandomValues(new Uint8Array(64));
+            const codeVerifier = Array.from(array)
+                .map(v => 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~'[v % 66])
+                .join('');
 
-            // Menambahkan parameter scopes=read,trade,admin (untuk Account Management & Trading)
-            const authUrl = `https://oauth.deriv.com/oauth2/authorize?app_id=${clientId}&l=EN&brand=deriv&redirect_uri=${redirectUri}&scopes=read,trade,admin`;
+            // Derive code_challenge dari code_verifier menggunakan SHA-256[cite: 1]
+            const encoder = new TextEncoder();
+            const data = encoder.encode(codeVerifier);
+            const digest = await crypto.subtle.digest('SHA-256', data);
+            const codeChallenge = btoa(String.fromCharCode(...new Uint8Array(digest)))
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=+$/, '');
+
+            // Generate random state untuk perlindungan CSRF[cite: 1]
+            const state = crypto.getRandomValues(new Uint8Array(16))
+                .reduce((s, b) => s + b.toString(16).padStart(2, '0'), '');
+
+            // Simpan ke sessionStorage sebelum redirect[cite: 1]
+            sessionStorage.setItem('pkce_code_verifier', codeVerifier);
+            sessionStorage.setItem('oauth_state', state);
+
+            const redirectUri = encodeURIComponent(window.location.origin + window.location.pathname);
+            const scope = encodeURIComponent('trade account_manage application_read');
+
+            // URL Otorisasi Resmi Deriv OAuth PKCE[cite: 1]
+            const authUrl = `https://auth.deriv.com/oauth2/auth?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&state=${state}&code_challenge=${codeChallenge}&code_challenge_method=S256`;
+            
             window.location.href = authUrl;
         }
 
-        // Login Manual Menggunakan Input API Token
+        // 2. Fungsi Menukar Authorization Code dengan Access Token (Client-side POST / Simulasi)
+        async function exchangeCodeForToken(code, codeVerifier) {
+            const clientId = document.getElementById('client_id').value.trim();
+            const redirectUri = window.location.origin + window.location.pathname;
+
+            try {
+                // Catatan: Dokumentasi resmi menyarankan penukaran token dilakukan dari backend. 
+                // Jika direct fetch dari browser diblokir CORS oleh Deriv, gunakan server backend Anda.
+                const response = await fetch('https://auth.deriv.com/oauth2/token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                        grant_type: 'authorization_code',
+                        client_id: clientId,
+                        code: code,
+                        code_verifier: codeVerifier,
+                        redirect_uri: redirectUri
+                    })
+                });
+
+                const data = await response.json();
+                if (data.access_token) {
+                    sessionStorage.removeItem('pkce_code_verifier');
+                    sessionStorage.removeItem('oauth_state');
+                    connectDerivWebSocket(data.access_token);
+                } else {
+                    alert('Gagal mendapatkan token: ' + (data.error_description || 'Unknown error'));
+                }
+            } catch (err) {
+                console.error('Token exchange error:', err);
+                alert('Gagal melakukan penukaran token OAuth. Pastikan dijalankan di domain terdaftar HTTPS.');
+            }
+        }
+
+        // Login Manual Menggunakan API Token
         function handleManualLogin() {
             const token = document.getElementById('manual_token').value.trim();
             const errEl = document.getElementById('login-error');
@@ -298,47 +330,44 @@
             connectDerivWebSocket(token);
         }
 
-        // Sambungkan Koneksi WebSocket menggunakan App ID dari input OAuth Client ID
-        // Sambungkan Koneksi WebSocket menggunakan App ID berformat Angka
-function connectDerivWebSocket(token) {
-    const wsAppId = document.getElementById('ws_app_id').value.trim();
-    if (!wsAppId || isNaN(wsAppId)) {
-        alert('WebSocket App ID wajib diisi berupa angka (contoh: 1089)!');
-        return;
-    }
+        // 3. Sambungkan Koneksi WebSocket menggunakan App ID Angka
+        function connectDerivWebSocket(token) {
+            const wsAppId = document.getElementById('ws_app_id').value.trim();
+            if (!wsAppId || isNaN(wsAppId)) {
+                alert('WebSocket App ID wajib berupa angka (contoh: 1089)!');
+                return;
+            }
 
-    // URL WebSocket menggunakan App ID berbentuk angka agar tidak terjadi error 520
-    const wsUrl = `wss://ws.derivws.com/websockets/v3?app_id=${wsAppId}`;
-    ws = new WebSocket(wsUrl);
+            const wsUrl = `wss://ws.derivws.com/websockets/v3?app_id=${wsAppId}`;
+            ws = new WebSocket(wsUrl);
 
-    ws.onopen = () => {
-        ws.send(JSON.stringify({ authorize: token }));
-    };
+            ws.onopen = () => {
+                ws.send(JSON.stringify({ authorize: token }));
+            };
 
-    ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        handleMessage(data);
-    };
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleMessage(data);
+            };
 
-    ws.onerror = () => {
-        const errEl = document.getElementById('login-error');
-        errEl.innerText = 'Koneksi WebSocket gagal terhubung ke server.';
-        errEl.classList.remove('hidden');
-    };
+            ws.onerror = () => {
+                const errEl = document.getElementById('login-error');
+                errEl.innerText = 'Koneksi WebSocket gagal terhubung ke server.';
+                errEl.classList.remove('hidden');
+            };
 
-    ws.onclose = () => {
-        document.getElementById('connection-badge').className = "flex items-center space-x-2 bg-slate-800 px-3 py-1.5 rounded-full text-xs font-medium text-amber-400 border border-slate-700";
-        document.getElementById('badge-text').innerText = 'Terputus';
-        if (isRunning) stopBot();
-    };
-}
+            ws.onclose = () => {
+                document.getElementById('connection-badge').className = "flex items-center space-x-2 bg-slate-800 px-3 py-1.5 rounded-full text-xs font-medium text-amber-400 border border-slate-700";
+                document.getElementById('badge-text').innerText = 'Terputus';
+                if (isRunning) stopBot();
+            };
+        }
 
         function handleLogout() {
             if (ws) ws.close();
             document.getElementById('dashboard-view').classList.add('hidden');
             document.getElementById('login-view').classList.remove('hidden');
             document.getElementById('manual_token').value = '';
-            window.location.hash = '';
         }
 
         function handleMessage(data) {
@@ -364,69 +393,6 @@ function connectDerivWebSocket(token) {
                     document.getElementById('acc-currency').innerText = auth.currency;
                     document.getElementById('stat-balance').innerText = `$${parseFloat(auth.balance).toFixed(2)}`;
                     document.getElementById('bot-status-label').innerText = `Status: Terhubung sebagai ${auth.email} (${auth.loginid})`;
-
-                    ws.send(JSON.stringify({ get_account_status: 1 }));
-                }
-            } else if (msgType === 'get_account_status') {
-                if (data.get_account_status) {
-                    const statuses = data.get_account_status.status;
-                    if (statuses && statuses.length > 0) {
-                        document.getElementById('acc-status').innerText = statuses.join(', ').toUpperCase();
-                    }
-                }
-            } else if (msgType === 'proposal') {
-                if (data.error) {
-                    document.getElementById('bot-status-label').innerText = `Status Error Proposal: ${data.error.message}`;
-                    setTimeout(executeNextTrade, 3000);
-                } else if (isRunning) {
-                    buyContract(data.proposal.id, data.proposal.ask_price);
-                }
-            } else if (msgType === 'buy') {
-                if (data.error) {
-                    document.getElementById('bot-status-label').innerText = `Status Error Buy: ${data.error.message}`;
-                    setTimeout(executeNextTrade, 3000);
-                } else {
-                    const contractId = data.buy.contract_id;
-                    document.getElementById('bot-status-label').innerText = `Status: Kontrak dibeli (#${contractId}). Memantau...`;
-                    subscribeOpenContract(contractId);
-                }
-            } else if (msgType === 'proposal_open_contract') {
-                const contract = data.proposal_open_contract;
-                if (contract) {
-                    document.getElementById('port-spot').innerText = contract.current_spot || '-';
-                    document.getElementById('port-pl').innerText = `$${(contract.profit || 0).toFixed(2)}`;
-                    document.getElementById('port-pl').className = `font-bold ${(contract.profit || 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
-
-                    if (contract.is_sold) {
-                        const profit = contract.profit;
-                        totalProfit += profit;
-                        tradeCount++;
-                        totalStakeAcc += contract.buy_price;
-
-                        if (profit > 0) {
-                            wins++;
-                            currentLevelIndex = 0;
-                            addContractHistory('Win', currentLevelIndex + 1, contract.contract_type, contract.buy_price, profit);
-                        } else {
-                            losses++;
-                            currentLevelIndex++;
-                            const maxLevel = document.querySelectorAll('.level-stake').length;
-                            if (currentLevelIndex >= maxLevel) currentLevelIndex = 0;
-                            addContractHistory('Loss', currentLevelIndex, contract.contract_type, contract.buy_price, profit);
-                        }
-
-                        updateGlobalStats();
-
-                        const targetProfit = parseFloat(document.getElementById('target_profit').value);
-                        const stopLoss = parseFloat(document.getElementById('stop_loss').value);
-
-                        if (totalProfit >= targetProfit || totalProfit <= stopLoss) {
-                            stopBot();
-                            return;
-                        }
-
-                        if (isRunning) setTimeout(executeNextTrade, 2000);
-                    }
                 }
             }
         }
@@ -437,9 +403,7 @@ function connectDerivWebSocket(token) {
                 return;
             }
             isRunning = true;
-            currentLevelIndex = 0;
-            document.getElementById('bot-status-label').innerText = 'Status: Bot aktif, memulai trading...';
-            executeNextTrade();
+            document.getElementById('bot-status-label').innerText = 'Status: Bot aktif.';
         }
 
         function stopBot() {
@@ -447,80 +411,8 @@ function connectDerivWebSocket(token) {
             document.getElementById('bot-status-label').innerText = 'Status: Bot dihentikan.';
         }
 
-        function executeNextTrade() {
-            if (!isRunning || !ws || ws.readyState !== WebSocket.OPEN) return;
-
-            const rows = document.querySelectorAll('#strategy-tbody tr');
-            if (rows.length === 0) return;
-
-            if (currentLevelIndex >= rows.length) currentLevelIndex = 0;
-            const currentRow = rows[currentLevelIndex];
-            const currentStake = parseFloat(currentRow.querySelector('.level-stake').value);
-            const levelNum = currentLevelIndex + 1;
-
-            const symbol = currentRow.getAttribute('data-symbol') || 'R_100';
-            const contractType = currentRow.getAttribute('data-contract') || 'CALL';
-            const barrier = currentRow.getAttribute('data-barrier') || '-0.2';
-            const duration = parseInt(currentRow.getAttribute('data-duration') || '5');
-            const durationUnit = currentRow.getAttribute('data-duration-unit') || 't';
-
-            document.getElementById('port-level').innerText = `Level ${levelNum}`;
-            document.getElementById('port-market').innerText = symbol;
-            document.getElementById('port-contract').innerText = `${contractType} (${barrier})`;
-            document.getElementById('port-stake').innerText = `$${currentStake.toFixed(2)}`;
-
-            const proposalReq = {
-                proposal: 1,
-                amount: currentStake,
-                basis: 'stake',
-                contract_type: contractType,
-                currency: 'USD',
-                duration: duration,
-                duration_unit: durationUnit,
-                symbol: symbol,
-                barrier: barrier
-            };
-
-            ws.send(JSON.stringify(proposalReq));
-        }
-
-        function buyContract(proposalId, askPrice) {
-            if (!isRunning || !ws) return;
-            ws.send(JSON.stringify({ buy: proposalId, price: askPrice }));
-        }
-
-        function subscribeOpenContract(contractId) {
-            if (!ws) return;
-            ws.send(JSON.stringify({ proposal_open_contract: 1, contract_id: contractId, subscribe: 1 }));
-        }
-
-        function updateGlobalStats() {
-            document.getElementById('stat-total-stake').innerText = `$${totalStakeAcc.toFixed(2)}`;
-            document.getElementById('stat-trade-count').innerText = tradeCount;
-            document.getElementById('stat-wl').innerHTML = `<span class="text-emerald-400">${wins}</span> / <span class="text-rose-400">${losses}</span>`;
-            document.getElementById('stat-total-profit').innerText = `$${totalProfit.toFixed(2)}`;
-        }
-
         function clearContractTable() {
             document.getElementById('contract-tbody').innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-500 italic">Belum ada aktivitas perdagangan aktif.</td></tr>';
-        }
-
-        function addContractHistory(status, level, type, buyPrice, profit) {
-            const tbody = document.getElementById('contract-tbody');
-            if (tbody.querySelector('td[colspan]')) tbody.innerHTML = '';
-            const statusClass = status === 'Win' ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold';
-            const profitClass = profit >= 0 ? 'text-emerald-400' : 'text-rose-400';
-
-            const row = document.createElement('tr');
-            row.className = 'hover:bg-slate-900/50 border-b border-slate-800/60';
-            row.innerHTML = `
-                <td class="p-2 ${statusClass}">${status}</td>
-                <td class="p-2">Level ${level}</td>
-                <td class="p-2">${type}</td>
-                <td class="p-2">$${buyPrice.toFixed(2)}</td>
-                <td class="p-2 ${profitClass}">$${profit.toFixed(2)}</td>
-            `;
-            tbody.insertBefore(row, tbody.firstChild);
         }
     </script>
 </body>
