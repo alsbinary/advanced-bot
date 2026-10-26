@@ -66,36 +66,35 @@
 
         let ws = null;
 
-        // Otomatis tangkap Callback saat halaman dimuat
+        // Otomatis tangkap Callback saat halaman memuat ulang
         window.onload = async function() {
             const urlParams = new URLSearchParams(window.location.search);
             const code = urlParams.get('code');
             const state = urlParams.get('state');
 
-            // Tangkap App ID tersimpan
             const savedAppId = localStorage.getItem('deriv_app_id') || sessionStorage.getItem('pending_app_id');
             if (savedAppId) {
                 document.getElementById('app_id').value = savedAppId;
             }
 
-            // Jika ada Authorization Code dari Deriv (Callback)
+            // Jika ada Authorization Code yang dikembalikan oleh Deriv[cite: 1]
             if (code) {
                 const savedState = sessionStorage.getItem('oauth_state');
                 const codeVerifier = sessionStorage.getItem('pkce_code_verifier');
 
-                // Verifikasi State CSRF
+                // Verifikasi state untuk keamanan CSRF[cite: 1]
                 if (state && savedState && state !== savedState) {
-                    alert('Error: State mismatch! Kemungkinan terjadi serangan CSRF.');
+                    showError('Error: State mismatch! Kemungkinan terjadi serangan CSRF.');
                     return;
                 }
 
-                // Bersihkan URL dari query parameters agar rapi
+                // Bersihkan URL parameter agar bersih
                 window.history.replaceState({}, document.title, window.location.pathname);
 
-                // Tukar Authorization Code dengan Access Token
+                // Tukar Authorization Code dengan Access Token[cite: 1]
                 await exchangeCodeForToken(code, codeVerifier, savedAppId);
             } else {
-                // Cek jika sudah ada token tersimpan sebelumnya
+                // Cek jika token sudah tersimpan sebelumnya
                 const accessToken = localStorage.getItem('deriv_access_token');
                 if (accessToken && savedAppId) {
                     connectDerivWebSocket(accessToken, savedAppId);
@@ -103,7 +102,7 @@
             }
         };
 
-        // 1. Inisialisasi Alur OAuth 2.0 PKCE
+        // 1. Inisialisasi Alur OAuth 2.0 PKCE[cite: 1]
         async function loginWithDerivOAuthPKCE() {
             const appId = document.getElementById('app_id').value.trim();
             if (!appId) {
@@ -111,17 +110,16 @@
                 return;
             }
 
-            // Simpan App ID
             sessionStorage.setItem('pending_app_id', appId);
             localStorage.setItem('deriv_app_id', appId);
 
-            // Generate PKCE code_verifier (43-128 Karakter)
+            // Generate PKCE code_verifier[cite: 1]
             const array = crypto.getRandomValues(new Uint8Array(64));
             const codeVerifier = Array.from(array)
                 .map(v => 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~'[v % 66])
                 .join('');
 
-            // Calculate code_challenge (SHA-256 Base64URL)
+            // Calculate code_challenge[cite: 1]
             const encoder = new TextEncoder();
             const data = encoder.encode(codeVerifier);
             const digest = await crypto.subtle.digest('SHA-256', data);
@@ -130,19 +128,19 @@
                 .replace(/\//g, '_')
                 .replace(/=+$/, '');
 
-            // Random State
             const state = crypto.randomUUID();
 
             sessionStorage.setItem('pkce_code_verifier', codeVerifier);
             sessionStorage.setItem('oauth_state', state);
 
+            // Pastikan redirect_uri persis sama dengan domain root GitHub Pages
             const redirectUri = window.location.origin + window.location.pathname;
 
             const params = new URLSearchParams({
                 client_id: appId,
                 redirect_uri: redirectUri,
                 response_type: 'code',
-                scope: 'trade', // Sesuaikan scope sesuai izin App ID Anda
+                scope: 'trade', // Sesuai dengan izin yang diaktifkan di App Dashboard Anda
                 state: state,
                 code_challenge: codeChallenge,
                 code_challenge_method: 'S256'
@@ -151,7 +149,7 @@
             window.location.href = `https://auth.deriv.com/oauth2/auth?${params.toString()}`;
         }
 
-        // 2. Penukaran Authorization Code dengan Access Token
+        // 2. Penukaran Authorization Code dengan Access Token[cite: 1]
         async function exchangeCodeForToken(code, codeVerifier, appId) {
             const redirectUri = window.location.origin + window.location.pathname;
 
@@ -185,7 +183,7 @@
             }
         }
 
-        // 3. Menghubungkan WebSocket
+        // 3. Menghubungkan WebSocket menggunakan App ID Angka & Bearer Token
         function connectDerivWebSocket(token, appId) {
             const wsUrl = `wss://ws.derivws.com/websockets/v3?app_id=${appId}`;
             ws = new WebSocket(wsUrl);
