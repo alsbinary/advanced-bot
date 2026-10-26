@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>OAuth Callback - Deriv Bot</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex items-center justify-center font-sans">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl text-center space-y-4 max-w-sm w-full">
+        <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+        <h2 id="status-text" class="text-sm font-bold text-slate-200">Memproses Otorisasi OAuth...</h2>
+    </div>
+
+    <script>
+        window.onload = async function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const code = urlParams.get('code');
+            const state = urlParams.get('state');
+            const error = urlParams.get('error');
+
+            if (error) {
+                alert('Autentikasi dibatalkan atau gagal: ' + urlParams.get('error_description'));
+                window.location.href = './index.html';
+                return;
+            }
+
+            const savedState = sessionStorage.getItem('oauth_state');
+            const appId = sessionStorage.getItem('pending_app_id');
+            const codeVerifier = sessionStorage.getItem('pkce_code_verifier');
+
+            // Validasi CSRF state
+            if (!state || state !== savedState) {
+                alert('Error: State mismatch! Kemungkinan serangan CSRF terdeteksi.');
+                window.location.href = './index.html';
+                return;
+            }
+
+            if (!code || !appId || !codeVerifier) {
+                alert('Parameter otorisasi tidak lengkap.');
+                window.location.href = './index.html';
+                return;
+            }
+
+            const redirectUri = window.location.origin + window.location.pathname;
+
+            try {
+                // Tukar authorization code dengan access token
+                const response = await fetch('https://auth.deriv.com/oauth2/token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                        grant_type: 'authorization_code',
+                        client_id: appId,
+                        code: code,
+                        code_verifier: codeVerifier,
+                        redirect_uri: redirectUri
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.access_token) {
+                    // Simpan token dengan aman ke localStorage
+                    localStorage.setItem('deriv_access_token', data.access_token);
+                    localStorage.setItem('deriv_app_id', appId);
+
+                    // Bersihkan session storage PKCE
+                    sessionStorage.clear();
+
+                    // Redirect kembali ke halaman utama bot
+                    window.location.href = './index.html';
+                } else {
+                    alert('Gagal menukar token: ' + (data.error_description || 'Unknown error'));
+                    window.location.href = './index.html';
+                }
+            } catch (err) {
+                console.error('Token exchange error:', err);
+                alert('Terjadi kesalahan jaringan saat penukaran token OAuth.');
+                window.location.href = './index.html';
+            }
+        };
+    </script>
+</body>
+</html>
