@@ -23,24 +23,19 @@
         </div>
     </header>
 
-    <!-- VIEW 1: HALAMAN LOGIN -->
+    <!-- VIEW 1: LOGIN -->
     <div id="login-view" class="flex-1 flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-8 shadow-2xl space-y-6">
             <div class="text-center space-y-2">
                 <div class="inline-block bg-blue-600/20 text-blue-400 font-semibold px-3 py-1 rounded-full text-xs border border-blue-500/30">OAuth 2.0 PKCE Gateway</div>
                 <h2 class="text-lg font-bold text-white">Masuk ke Dashboard Bot</h2>
-                <p class="text-xs text-slate-400">Masukkan OAuth Client ID dan WebSocket Numeric App ID Anda.</p>
+                <p class="text-xs text-slate-400">Masukkan OAuth Client ID (Alfanumerik) Anda.</p>
             </div>
 
             <div class="space-y-4 text-xs">
                 <div>
                     <label class="block font-medium text-slate-400 mb-1">OAuth Client ID (Alfanumerik)</label>
                     <input type="text" id="client_id" value="34M4TGKofeTRkL0lcJ9zO" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2.5 text-slate-200 focus:outline-none focus:border-blue-500">
-                </div>
-
-                <div>
-                    <label class="block font-medium text-slate-400 mb-1">WebSocket App ID (Wajib Angka, cth: 1089)</label>
-                    <input type="number" id="ws_app_id" value="1089" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2.5 text-slate-200 focus:outline-none focus:border-blue-500">
                 </div>
                 
                 <button onclick="loginWithDerivOAuthPKCE()" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold py-3 rounded-xl transition shadow-lg tracking-wider">LOGIN VIA DERIV (OAUTH PKCE)</button>
@@ -49,7 +44,7 @@
         </div>
     </div>
 
-    <!-- VIEW 2: HALAMAN DASHBOARD -->
+    <!-- VIEW 2: DASHBOARD -->
     <main id="dashboard-view" class="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 hidden">
         <div class="lg:col-span-12 bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl space-y-4">
             <div class="flex justify-between items-center border-b border-slate-800 pb-3">
@@ -74,29 +69,23 @@
         window.onload = function() {
             const accessToken = localStorage.getItem('deriv_access_token');
             const savedClientId = localStorage.getItem('deriv_client_id');
-            const savedWsAppId = localStorage.getItem('deriv_ws_app_id');
 
             if (savedClientId) document.getElementById('client_id').value = savedClientId;
-            if (savedWsAppId) document.getElementById('ws_app_id').value = savedWsAppId;
 
-            if (accessToken && savedWsAppId) {
-                connectDerivWebSocket(accessToken, savedWsAppId);
+            if (accessToken && savedClientId) {
+                connectDerivWebSocket(accessToken, savedClientId);
             }
         };
 
         async function loginWithDerivOAuthPKCE() {
             const clientId = document.getElementById('client_id').value.trim();
-            const wsAppId = document.getElementById('ws_app_id').value.trim();
-
-            if (!clientId || !wsAppId || isNaN(wsAppId)) {
-                alert('OAuth Client ID dan WebSocket App ID (berupa angka) wajib diisi dengan benar!');
+            if (!clientId) {
+                alert('OAuth Client ID wajib diisi!');
                 return;
             }
 
             localStorage.setItem('deriv_client_id', clientId);
-            localStorage.setItem('deriv_ws_app_id', wsAppId);
 
-            // Generate PKCE code_verifier[cite: 1]
             const array = crypto.getRandomValues(new Uint8Array(64));
             const codeVerifier = Array.from(array)
                 .map(v => 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~'[v % 66])
@@ -112,12 +101,10 @@
 
             const state = crypto.randomUUID();
 
-            // Simpan ke sessionStorage agar bisa dibaca oleh oauth-callback.html[cite: 1]
             sessionStorage.setItem('pkce_code_verifier', codeVerifier);
             sessionStorage.setItem('oauth_state', state);
             sessionStorage.setItem('pending_client_id', clientId);
 
-            // Tentukan URL Callback secara mutlak mengarah ke oauth-callback.html[cite: 1]
             const redirectUri = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/') + 'oauth-callback.html';
 
             const params = new URLSearchParams({
@@ -133,8 +120,9 @@
             window.location.href = `https://auth.deriv.com/oauth2/auth?${params.toString()}`;
         }
 
-        function connectDerivWebSocket(token, wsAppId) {
-            const wsUrl = `wss://ws.derivws.com/websockets/v3?app_id=${wsAppId}`;
+        function connectDerivWebSocket(token, clientId) {
+            // Menggunakan Alphanumeric Client ID langsung sebagai app_id pada WebSocket
+            const wsUrl = `wss://ws.derivws.com/websockets/v3?app_id=${clientId}`;
             ws = new WebSocket(wsUrl);
 
             ws.onopen = () => {
