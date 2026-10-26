@@ -72,6 +72,7 @@
 
             if (savedClientId) document.getElementById('client_id').value = savedClientId;
 
+            // Jika token sudah ada, langsung hubungkan WebSocket menggunakan Client ID alfanumerik sebagai parameter app_id
             if (accessToken && savedClientId) {
                 connectDerivWebSocket(accessToken, savedClientId);
             }
@@ -86,6 +87,7 @@
 
             localStorage.setItem('deriv_client_id', clientId);
 
+            // Generate PKCE code_verifier[cite: 1]
             const array = crypto.getRandomValues(new Uint8Array(64));
             const codeVerifier = Array.from(array)
                 .map(v => 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~'[v % 66])
@@ -105,6 +107,7 @@
             sessionStorage.setItem('oauth_state', state);
             sessionStorage.setItem('pending_client_id', clientId);
 
+            // Redirect URI harus mengarah persis ke oauth-callback.html[cite: 1]
             const redirectUri = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/') + 'oauth-callback.html';
 
             const params = new URLSearchParams({
@@ -121,7 +124,6 @@
         }
 
         function connectDerivWebSocket(token, clientId) {
-            // Menggunakan Alphanumeric Client ID langsung sebagai app_id pada WebSocket
             const wsUrl = `wss://ws.derivws.com/websockets/v3?app_id=${clientId}`;
             ws = new WebSocket(wsUrl);
 
