@@ -29,7 +29,7 @@
             const clientId = sessionStorage.getItem('pending_client_id') || localStorage.getItem('deriv_client_id');
             const codeVerifier = sessionStorage.getItem('pkce_code_verifier');
 
-            // Validasi State CSRF[cite: 1]
+            // Validasi State CSRF
             if (!state || state !== savedState) {
                 alert('Error: State mismatch! Kemungkinan serangan CSRF terdeteksi.');
                 window.location.href = './index.html';
@@ -42,10 +42,11 @@
                 return;
             }
 
-            const redirectUri = window.location.origin + window.location.pathname;
+            // Menetapkan redirect_uri secara tetap sama persis dengan saat login
+            const redirectUri = "https://alsbinary.github.io/advanced-bot/oauth-callback.html";
 
             try {
-                // Proses Penukaran Token via POST[cite: 1]
+                // Proses Penukaran Token via POST
                 const response = await fetch('https://auth.deriv.com/oauth2/token', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -64,7 +65,7 @@
                     // Simpan access token ke localStorage
                     localStorage.setItem('deriv_access_token', data.access_token);
                     
-                    // Bersihkan session storage PKCE[cite: 1]
+                    // Bersihkan session storage PKCE
                     sessionStorage.removeItem('pkce_code_verifier');
                     sessionStorage.removeItem('oauth_state');
                     sessionStorage.removeItem('pending_client_id');
