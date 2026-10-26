@@ -29,13 +29,18 @@
             <div class="text-center space-y-2">
                 <div class="inline-block bg-blue-600/20 text-blue-400 font-semibold px-3 py-1 rounded-full text-xs border border-blue-500/30">OAuth 2.0 PKCE Gateway</div>
                 <h2 class="text-lg font-bold text-white">Masuk ke Dashboard Bot</h2>
-                <p class="text-xs text-slate-400">Gunakan App ID terdaftar Anda untuk otorisasi aman via Deriv.</p>
+                <p class="text-xs text-slate-400">Masukkan OAuth Client ID dan WebSocket Numeric App ID Anda.</p>
             </div>
 
             <div class="space-y-4 text-xs">
                 <div>
-                    <label class="block font-medium text-slate-400 mb-1">Deriv App ID (Numeric/App ID)</label>
-                    <input type="text" id="app_id" placeholder="Masukkan App ID Anda..." class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2.5 text-slate-200 focus:outline-none focus:border-blue-500">
+                    <label class="block font-medium text-slate-400 mb-1">OAuth Client ID (Alfanumerik)</label>
+                    <input type="text" id="client_id" value="34M4TGKofeTRkL0lcJ9zO" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2.5 text-slate-200 focus:outline-none focus:border-blue-500">
+                </div>
+
+                <div>
+                    <label class="block font-medium text-slate-400 mb-1">WebSocket App ID (Wajib Angka, cth: 1089)</label>
+                    <input type="number" id="ws_app_id" value="1089" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2.5 text-slate-200 focus:outline-none focus:border-blue-500">
                 </div>
                 
                 <button onclick="loginWithDerivOAuthPKCE()" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold py-3 rounded-xl transition shadow-lg tracking-wider">LOGIN VIA DERIV (OAUTH PKCE)</button>
@@ -66,52 +71,30 @@
 
         let ws = null;
 
-        // Otomatis tangkap Callback saat halaman memuat ulang
-        window.onload = async function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const code = urlParams.get('code');
-            const state = urlParams.get('state');
+        window.onload = function() {
+            const accessToken = localStorage.getItem('deriv_access_token');
+            const savedClientId = localStorage.getItem('deriv_client_id');
+            const savedWsAppId = localStorage.getItem('deriv_ws_app_id');
 
-            const savedAppId = localStorage.getItem('deriv_app_id') || sessionStorage.getItem('pending_app_id');
-            if (savedAppId) {
-                document.getElementById('app_id').value = savedAppId;
-            }
+            if (savedClientId) document.getElementById('client_id').value = savedClientId;
+            if (savedWsAppId) document.getElementById('ws_app_id').value = savedWsAppId;
 
-            // Jika ada Authorization Code yang dikembalikan oleh Deriv[cite: 1]
-            if (code) {
-                const savedState = sessionStorage.getItem('oauth_state');
-                const codeVerifier = sessionStorage.getItem('pkce_code_verifier');
-
-                // Verifikasi state untuk keamanan CSRF[cite: 1]
-                if (state && savedState && state !== savedState) {
-                    showError('Error: State mismatch! Kemungkinan terjadi serangan CSRF.');
-                    return;
-                }
-
-                // Bersihkan URL parameter agar bersih
-                window.history.replaceState({}, document.title, window.location.pathname);
-
-                // Tukar Authorization Code dengan Access Token[cite: 1]
-                await exchangeCodeForToken(code, codeVerifier, savedAppId);
-            } else {
-                // Cek jika token sudah tersimpan sebelumnya
-                const accessToken = localStorage.getItem('deriv_access_token');
-                if (accessToken && savedAppId) {
-                    connectDerivWebSocket(accessToken, savedAppId);
-                }
+            if (accessToken && savedWsAppId) {
+                connectDerivWebSocket(accessToken, savedWsAppId);
             }
         };
 
-        // 1. Inisialisasi Alur OAuth 2.0 PKCE[cite: 1]
         async function loginWithDerivOAuthPKCE() {
-            const appId = document.getElementById('app_id').value.trim();
-            if (!appId) {
-                alert('App ID wajib diisi!');
+            const clientId = document.getElementById('client_id').value.trim();
+            const wsAppId = document.getElementById('ws_app_id').value.trim();
+
+            if (!clientId || !wsAppId || isNaN(wsAppId)) {
+                alert('OAuth Client ID dan WebSocket App ID (berupa angka) wajib diisi dengan benar!');
                 return;
             }
 
-            sessionStorage.setItem('pending_app_id', appId);
-            localStorage.setItem('deriv_app_id', appId);
+            localStorage.setItem('deriv_client_id', clientId);
+            localStorage.setItem('deriv_ws_app_id', wsAppId);
 
             // Generate PKCE code_verifier[cite: 1]
             const array = crypto.getRandomValues(new Uint8Array(64));
@@ -119,7 +102,6 @@
                 .map(v => 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~'[v % 66])
                 .join('');
 
-            // Calculate code_challenge[cite: 1]
             const encoder = new TextEncoder();
             const data = encoder.encode(codeVerifier);
             const digest = await crypto.subtle.digest('SHA-256', data);
@@ -130,17 +112,19 @@
 
             const state = crypto.randomUUID();
 
+            // Simpan ke sessionStorage agar bisa dibaca oleh oauth-callback.html[cite: 1]
             sessionStorage.setItem('pkce_code_verifier', codeVerifier);
             sessionStorage.setItem('oauth_state', state);
+            sessionStorage.setItem('pending_client_id', clientId);
 
-            // Pastikan redirect_uri persis sama dengan domain root GitHub Pages
-            const redirectUri = window.location.origin + window.location.pathname;
+            // Tentukan URL Callback secara mutlak mengarah ke oauth-callback.html[cite: 1]
+            const redirectUri = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/') + 'oauth-callback.html';
 
             const params = new URLSearchParams({
-                client_id: appId,
+                client_id: clientId,
                 redirect_uri: redirectUri,
                 response_type: 'code',
-                scope: 'trade', // Sesuai dengan izin yang diaktifkan di App Dashboard Anda
+                scope: 'trade',
                 state: state,
                 code_challenge: codeChallenge,
                 code_challenge_method: 'S256'
@@ -149,43 +133,8 @@
             window.location.href = `https://auth.deriv.com/oauth2/auth?${params.toString()}`;
         }
 
-        // 2. Penukaran Authorization Code dengan Access Token[cite: 1]
-        async function exchangeCodeForToken(code, codeVerifier, appId) {
-            const redirectUri = window.location.origin + window.location.pathname;
-
-            try {
-                const response = await fetch('https://auth.deriv.com/oauth2/token', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams({
-                        grant_type: 'authorization_code',
-                        client_id: appId,
-                        code: code,
-                        code_verifier: codeVerifier,
-                        redirect_uri: redirectUri
-                    })
-                });
-
-                const data = await response.json();
-
-                if (data.access_token) {
-                    localStorage.setItem('deriv_access_token', data.access_token);
-                    sessionStorage.removeItem('pkce_code_verifier');
-                    sessionStorage.removeItem('oauth_state');
-
-                    connectDerivWebSocket(data.access_token, appId);
-                } else {
-                    showError('Gagal menukar token: ' + (data.error_description || 'Unknown error'));
-                }
-            } catch (err) {
-                console.error('Token exchange error:', err);
-                showError('Gagal terhubung ke endpoint token Deriv.');
-            }
-        }
-
-        // 3. Menghubungkan WebSocket menggunakan App ID Angka & Bearer Token
-        function connectDerivWebSocket(token, appId) {
-            const wsUrl = `wss://ws.derivws.com/websockets/v3?app_id=${appId}`;
+        function connectDerivWebSocket(token, wsAppId) {
+            const wsUrl = `wss://ws.derivws.com/websockets/v3?app_id=${wsAppId}`;
             ws = new WebSocket(wsUrl);
 
             ws.onopen = () => {
