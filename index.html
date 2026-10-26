@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALS Bot Pro - Deriv Trading Engine</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans">
+
+    <!-- Top Navigation Bar -->
+    <header class="bg-slate-900 border-b border-slate-800 px-6 py-3 flex justify-between items-center shadow-lg">
+        <div class="flex items-center space-x-3">
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black px-3 py-1.5 rounded-lg text-xs tracking-wider shadow">ALS PRO</div>
+            <h1 class="text-sm font-bold tracking-wide text-slate-200">Advanced Level Strategy Web Engine</h1>
+        </div>
+        <div class="flex items-center space-x-4">
+            <div id="connection-badge" class="flex items-center space-x-2 bg-slate-800 px-3 py-1.5 rounded-full text-xs font-medium text-amber-400 border border-slate-700">
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+                <span id="badge-text">Terputus</span>
+            </div>
+            <div class="text-xs text-slate-400 hidden md:block">GMT: <span id="gmt-time" class="text-slate-200 font-mono">-</span></div>
+        </div>
+    </header>
+
+    <!-- ================= VIEW 1: HALAMAN LOGIN ================= -->
+    <div id="login-view" class="flex-1 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-8 shadow-2xl space-y-6">
+            <div class="text-center space-y-2">
+                <div class="inline-block bg-blue-600/20 text-blue-400 font-semibold px-3 py-1 rounded-full text-xs border border-blue-500/30">Deriv API Gateway</div>
+                <h2 class="text-lg font-bold text-white">Masuk ke Dashboard Bot</h2>
+                <p class="text-xs text-slate-400">Masukkan API Token (pat_...) Anda untuk mulai terhubung.</p>
+            </div>
+
+            <div class="space-y-4 text-xs">
+                <div>
+                    <label class="block font-medium text-slate-400 mb-1">OAuth Client ID / App ID</label>
+                    <input type="text" id="client_id" value="34M4TGKofeTRkL0lcJ9zO" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2.5 text-slate-200 focus:outline-none focus:border-blue-500">
+                </div>
+                
+                <div>
+                    <label class="block font-medium text-slate-400 mb-1">API Token (pat_...)</label>
+                    <input type="password" id="manual_token" placeholder="Tempel token pat_... di sini" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2.5 text-slate-200 focus:outline-none focus:border-blue-500">
+                </div>
+                <button onclick="handleManualLogin()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition shadow-lg tracking-wider">HUBUNGKAN WEBSOCKET</button>
+            </div>
+            <div id="login-error" class="text-rose-400 text-xs text-center hidden"></div>
+        </div>
+    </div>
+
+    <!-- ================= VIEW 2: HALAMAN DASHBOARD (Hidden by Default) ================= -->
+    <main id="dashboard-view" class="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 hidden">
+        
+        <!-- KOLOM KIRI: Info Akun & Statistik -->
+        <div class="lg:col-span-4 flex flex-col space-y-5">
+            
+            <!-- Informasi Akun Terhubung -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-xl space-y-3">
+                <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                    <h2 class="text-xs font-bold text-emerald-400 uppercase tracking-widest flex items-center">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-2 animate-pulse"></span> Connected
+                    </h2>
+                    <button onclick="handleLogout()" class="text-rose-400 hover:text-rose-300 underline text-[10px]">Keluar</button>
+                </div>
+                <div class="space-y-2 text-xs">
+                    <div class="flex justify-between"><span class="text-slate-400">Nomor Akun:</span> <span id="acc-loginid" class="font-mono font-bold text-cyan-300">-</span></div>
+                    <div class="flex justify-between"><span class="text-slate-400">Nama Pemilik:</span> <span id="acc-name" class="font-medium text-slate-200">-</span></div>
+                    <div class="flex justify-between"><span class="text-slate-400">Email:</span> <span id="acc-email" class="font-medium text-slate-200">-</span></div>
+                    <div class="flex justify-between"><span class="text-slate-400">Mata Uang:</span> <span id="acc-currency" class="font-medium text-slate-200">-</span></div>
+                    <div class="flex justify-between border-t border-slate-800/80 pt-2"><span class="text-slate-400">Status Akun:</span> <span id="acc-status" class="font-semibold text-emerald-400">Aktif</span></div>
+                </div>
+            </div>
+
+            <!-- Target & Stop Loss -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-xl grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-[11px] font-medium text-slate-400 mb-1">Target Profit ($)</label>
+                    <input type="number" id="target_profit" value="10" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-slate-400 mb-1">Stop Loss ($)</label>
+                    <input type="number" id="stop_loss" value="-33" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500">
+                </div>
+            </div>
+
+            <!-- Statistik Akun & Saldo -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-xl flex-1 flex flex-col justify-between">
+                <div>
+                    <h2 class="text-xs font-bold text-blue-400 uppercase tracking-widest mb-3 flex items-center">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-400 mr-2"></span> Ringkasan Saldo & P/L
+                    </h2>
+                    <div class="space-y-2.5 text-xs">
+                        <div class="flex justify-between border-b border-slate-800/60 pb-1.5"><span class="text-slate-400">Saldo Utama:</span> <span id="stat-balance" class="font-bold text-emerald-400">$0.00</span></div>
+                        <div class="flex justify-between border-b border-slate-800/60 pb-1.5"><span class="text-slate-400">Total Stake:</span> <span id="stat-total-stake" class="font-medium text-slate-200">$0.00</span></div>
+                        <div class="flex justify-between border-b border-slate-800/60 pb-1.5"><span class="text-slate-400">Total Trade:</span> <span id="stat-trade-count" class="font-medium text-slate-200">0</span></div>
+                        <div class="flex justify-between border-b border-slate-800/60 pb-1.5"><span class="text-slate-400">Win / Loss:</span> <span id="stat-wl" class="font-medium text-slate-200"><span class="text-emerald-400">0</span> / <span class="text-rose-400">0</span></span></div>
+                    </div>
+                </div>
+                <div class="mt-4 bg-slate-950 border border-slate-800/80 p-3 rounded-lg flex justify-between items-center">
+                    <span class="text-xs text-slate-400 font-medium">Total P/L:</span>
+                    <span id="stat-total-profit" class="text-sm font-bold text-slate-200">$0.00</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- KOLOM KANAN: Portfolio, Strategy Table & Riwayat -->
+        <div class="lg:col-span-8 flex flex-col space-y-5">
+            
+            <!-- Grid Atas: Portfolio & Strategy Table Config -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                
+                <!-- Portfolio Live State -->
+                <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-xl">
+                    <h2 class="text-xs font-bold text-blue-400 uppercase tracking-widest mb-3 flex items-center">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-400 mr-2"></span> Portfolio Live Status
+                    </h2>
+                    <div class="space-y-2 text-xs">
+                        <div class="flex justify-between"><span class="text-slate-400">Level Aktif:</span> <span id="port-level" class="font-semibold text-blue-300">-</span></div>
+                        <div class="flex justify-between"><span class="text-slate-400">Submarket:</span> <span id="port-market" class="font-medium text-slate-200">-</span></div>
+                        <div class="flex justify-between"><span class="text-slate-400">Purchase Type:</span> <span id="port-contract" class="font-medium text-slate-200">-</span></div>
+                        <div class="flex justify-between"><span class="text-slate-400">Current Spot:</span> <span id="port-spot" class="font-mono text-cyan-300">-</span></div>
+                        <div class="flex justify-between"><span class="text-slate-400">Stake / Amount:</span> <span id="port-stake" class="font-medium text-slate-200">-</span></div>
+                        <div class="flex justify-between border-t border-slate-800 pt-1.5"><span class="text-slate-400">P/L Berjalan:</span> <span id="port-pl" class="font-bold text-slate-300">$0.00</span></div>
+                    </div>
+                </div>
+
+                <!-- Strategy Multi-Level Config -->
+                <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-xl flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-center mb-3">
+                            <h2 class="text-xs font-bold text-blue-400 uppercase tracking-widest flex items-center">
+                                <span class="w-1.5 h-1.5 rounded-full bg-blue-400 mr-2"></span> Strategy Table Config
+                            </h2>
+                            <div class="space-x-1">
+                                <button onclick="openAddStrategyModal()" class="bg-blue-600 hover:bg-blue-500 text-[10px] px-2 py-1 rounded text-white font-semibold shadow">+ Add Level</button>
+                                <button onclick="clearStrategyTable()" class="bg-slate-800 hover:bg-slate-700 text-[10px] px-2 py-1 rounded text-rose-300 border border-slate-700">Clear</button>
+                            </div>
+                        </div>
+                        <div class="max-h-48 overflow-auto border border-slate-800 rounded-lg bg-slate-950">
+                            <table class="w-full text-left text-xs whitespace-nowrap">
+                                <thead class="bg-slate-900 text-slate-400 sticky top-0 border-b border-slate-800 z-10">
+                                    <tr>
+                                        <th class="p-2.5">ID</th>
+                                        <th class="p-2.5">Level</th>
+                                        <th class="p-2.5">Contract Type</th>
+                                        <th class="p-2.5">Market</th>
+                                        <th class="p-2.5">Submarket</th>
+                                        <th class="p-2.5">Purchase Type</th>
+                                        <th class="p-2.5">High</th>
+                                        <th class="p-2.5">Low</th>
+                                        <th class="p-2.5">Expiry Type</th>
+                                        <th class="p-2.5">Duration</th>
+                                        <th class="p-2.5">Unit</th>
+                                        <th class="p-2.5">Amount Type</th>
+                                        <th class="p-2.5">Cur</th>
+                                        <th class="p-2.5">Amount ($)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="strategy-tbody" class="divide-y divide-slate-800/60">
+                                    <tr class="hover:bg-slate-900/50" data-symbol="R_100" data-contract="CALL" data-barrier="-0.2" data-duration="5" data-duration-unit="t">
+                                        <td class="p-2.5 text-slate-400">115</td>
+                                        <td class="p-2.5 font-medium text-blue-300">Level 1</td>
+                                        <td class="p-2.5">Up/Down</td>
+                                        <td class="p-2.5">Volatility</td>
+                                        <td class="p-2.5">Bull Market Index</td>
+                                        <td class="p-2.5 text-emerald-400 font-medium">Higher</td>
+                                        <td class="p-2.5">-</td>
+                                        <td class="p-2.5">-0.2</td>
+                                        <td class="p-2.5">Duration</td>
+                                        <td class="p-2.5">5</td>
+                                        <td class="p-2.5">Tick</td>
+                                        <td class="p-2.5">stake</td>
+                                        <td class="p-2.5">USD</td>
+                                        <td class="p-2.5"><input type="number" value="0.35" class="w-16 bg-slate-900 border border-slate-700 rounded px-1 text-xs level-stake text-slate-200"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Contract History Table -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-xl flex-1 flex flex-col h-44">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-xs font-bold text-blue-400 uppercase tracking-widest flex items-center">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-400 mr-2"></span> Contract Execution History
+                    </h2>
+                    <button onclick="clearContractTable()" class="text-[11px] text-slate-400 hover:text-slate-200 underline">Clear Table</button>
+                </div>
+                <div class="overflow-y-auto flex-1 border border-slate-800 rounded-lg bg-slate-950 text-xs">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-900 text-slate-400 sticky top-0 border-b border-slate-800">
+                            <tr>
+                                <th class="p-2">Status</th>
+                                <th class="p-2">Level</th>
+                                <th class="p-2">Contract</th>
+                                <th class="p-2">Buy ($)</th>
+                                <th class="p-2">Profit ($)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="contract-tbody" class="divide-y divide-slate-800/60">
+                            <tr><td colspan="5" class="p-4 text-center text-slate-500 italic">Belum ada aktivitas perdagangan aktif.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Panel Tombol Eksekusi & Status Bot -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-xl flex flex-wrap gap-3 items-center justify-between">
+                <div class="flex space-x-3">
+                    <button id="btn-start" onclick="startBot()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-6 py-2.5 rounded-lg text-xs transition shadow-lg tracking-wider">START BOT</button>
+                    <button onclick="stopBot()" class="bg-rose-600 hover:bg-rose-500 text-white font-bold px-6 py-2.5 rounded-lg text-xs transition shadow-lg tracking-wider">STOP TRADE</button>
+                </div>
+                <div id="bot-status-label" class="text-xs text-slate-400 font-medium italic">Status: Menunggu inisialisasi...</div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- JavaScript Logika Eksekusi -->
+    <script>
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('gmt-time').innerText = now.toUTCString().slice(17, 25);
+        }, 1000);
+
+        let ws = null;
+        let isRunning = false;
+        let currentLevelIndex = 0;
+        let totalProfit = 0.00;
+        let totalStakeAcc = 0.00;
+        let tradeCount = 0;
+        let wins = 0;
+        let losses = 0;
+
+        function handleManualLogin() {
+            const token = document.getElementById('manual_token').value.trim();
+            const errEl = document.getElementById('login-error');
+
+            if (!token) {
+                errEl.innerText = 'API Token wajib diisi!';
+                errEl.classList.remove('hidden');
+                return;
+            }
+
+            errEl.classList.add('hidden');
+            connectDerivWebSocket(token);
+        }
+
+        function connectDerivWebSocket(token) {
+            // WebSocket menggunakan App ID angka untuk koneksi handshakenya, 
+            // sementara otorisasi akun divalidasi menggunakan token pat_ Anda melalui pesan authorize.
+            const wsUrl = `wss://ws.derivws.com/websockets/v3?app_id=1089`;
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                ws.send(JSON.stringify({ authorize: token }));
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleMessage(data);
+            };
+
+            ws.onerror = () => {
+                const errEl = document.getElementById('login-error');
+                errEl.innerText = 'Koneksi WebSocket gagal terhubung ke server.';
+                errEl.classList.remove('hidden');
+            };
+
+            ws.onclose = () => {
+                document.getElementById('connection-badge').className = "flex items-center space-x-2 bg-slate-800 px-3 py-1.5 rounded-full text-xs font-medium text-amber-400 border border-slate-700";
+                document.getElementById('badge-text').innerText = 'Terputus';
+                if (isRunning) stopBot();
+            };
+        }
+
+        function handleLogout() {
+            if (ws) ws.close();
+            document.getElementById('dashboard-view').classList.add('hidden');
+            document.getElementById('login-view').classList.remove('hidden');
+            document.getElementById('manual_token').value = '';
+        }
+
+        function handleMessage(data) {
+            const msgType = data.msg_type;
+
+            if (msgType === 'authorize') {
+                if (data.error) {
+                    const errEl = document.getElementById('login-error');
+                    errEl.innerText = 'Otorisasi Gagal: ' + data.error.message;
+                    errEl.classList.remove('hidden');
+                    if (ws) ws.close();
+                } else {
+                    document.getElementById('login-view').classList.add('hidden');
+                    document.getElementById('dashboard-view').classList.remove('hidden');
+
+                    document.getElementById('connection-badge').className = "flex items-center space-x-2 bg-emerald-950/80 px-3 py-1.5 rounded-full text-xs font-medium text-emerald-400 border border-emerald-800";
+                    document.getElementById('badge-text').innerText = 'Connected';
+
+                    const auth = data.authorize;
+                    document.getElementById('acc-loginid').innerText = auth.loginid;
+                    document.getElementById('acc-name').innerText = auth.fullname || 'Trader';
+                    document.getElementById('acc-email').innerText = auth.email;
+                    document.getElementById('acc-currency').innerText = auth.currency;
+                    document.getElementById('stat-balance').innerText = `$${parseFloat(auth.balance).toFixed(2)}`;
+                    document.getElementById('bot-status-label').innerText = `Status: Terhubung sebagai ${auth.email} (${auth.loginid})`;
+
+                    ws.send(JSON.stringify({ get_account_status: 1 }));
+                }
+            } else if (msgType === 'get_account_status') {
+                if (data.get_account_status) {
+                    const statuses = data.get_account_status.status;
+                    if (statuses && statuses.length > 0) {
+                        document.getElementById('acc-status').innerText = statuses.join(', ').toUpperCase();
+                    }
+                }
+            } else if (msgType === 'proposal') {
+                if (data.error) {
+                    document.getElementById('bot-status-label').innerText = `Status Error: ${data.error.message}`;
+                    setTimeout(executeNextTrade, 3000);
+                } else if (isRunning) {
+                    buyContract(data.proposal.id, data.proposal.ask_price);
+                }
+            } else if (msgType === 'buy') {
+                if (data.error) {
+                    document.getElementById('bot-status-label').innerText = `Status Error Buy: ${data.error.message}`;
+                    setTimeout(executeNextTrade, 3000);
+                } else {
+                    const contractId = data.buy.contract_id;
+                    document.getElementById('bot-status-label').innerText = `Status: Kontrak dibeli (#${contractId}). Memantau...`;
+                    subscribeOpenContract(contractId);
+                }
+            } else if (msgType === 'proposal_open_contract') {
+                const contract = data.proposal_open_contract;
+                if (contract) {
+                    document.getElementById('port-spot').innerText = contract.current_spot || '-';
+                    document.getElementById('port-pl').innerText = `$${(contract.profit || 0).toFixed(2)}`;
+                    document.getElementById('port-pl').className = `font-bold ${(contract.profit || 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+
+                    if (contract.is_sold) {
+                        const profit = contract.profit;
+                        totalProfit += profit;
+                        tradeCount++;
+                        totalStakeAcc += contract.buy_price;
+
+                        if (profit > 0) {
+                            wins++;
+                            currentLevelIndex = 0;
+                            addContractHistory('Win', currentLevelIndex + 1, contract.contract_type, contract.buy_price, profit);
+                        } else {
+                            losses++;
+                            currentLevelIndex++;
+                            const maxLevel = document.querySelectorAll('.level-stake').length;
+                            if (currentLevelIndex >= maxLevel) currentLevelIndex = 0;
+                            addContractHistory('Loss', currentLevelIndex, contract.contract_type, contract.buy_price, profit);
+                        }
+
+                        updateGlobalStats();
+
+                        const targetProfit = parseFloat(document.getElementById('target_profit').value);
+                        const stopLoss = parseFloat(document.getElementById('stop_loss').value);
+
+                        if (totalProfit >= targetProfit || totalProfit <= stopLoss) {
+                            stopBot();
+                            return;
+                        }
+
+                        if (isRunning) setTimeout(executeNextTrade, 2000);
+                    }
+                }
+            }
+        }
+
+        function startBot() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                alert('Koneksi WebSocket belum terhubung!');
+                return;
+            }
+            isRunning = true;
+            currentLevelIndex = 0;
+            document.getElementById('bot-status-label').innerText = 'Status: Bot aktif, memulai trading...';
+            executeNextTrade();
+        }
+
+        function stopBot() {
+            isRunning = false;
+            document.getElementById('bot-status-label').innerText = 'Status: Bot dihentikan.';
+        }
+
+        function executeNextTrade() {
+            if (!isRunning || !ws || ws.readyState !== WebSocket.OPEN) return;
+
+            const rows = document.querySelectorAll('#strategy-tbody tr');
+            if (rows.length === 0) return;
+
+            if (currentLevelIndex >= rows.length) currentLevelIndex = 0;
+            const currentRow = rows[currentLevelIndex];
+            const currentStake = parseFloat(currentRow.querySelector('.level-stake').value);
+            const levelNum = currentLevelIndex + 1;
+
+            const symbol = currentRow.getAttribute('data-symbol') || 'R_100';
+            const contractType = currentRow.getAttribute('data-contract') || 'CALL';
+            const barrier = currentRow.getAttribute('data-barrier') || '-0.2';
+            const duration = parseInt(currentRow.getAttribute('data-duration') || '5');
+            const durationUnit = currentRow.getAttribute('data-duration-unit') || 't';
+
+            document.getElementById('port-level').innerText = `Level ${levelNum}`;
+            document.getElementById('port-market').innerText = symbol;
+            document.getElementById('port-contract').innerText = `${contractType} (${barrier})`;
+            document.getElementById('port-stake').innerText = `$${currentStake.toFixed(2)}`;
+
+            const proposalReq = {
+                proposal: 1,
+                amount: currentStake,
+                basis: 'stake',
+                contract_type: contractType,
+                currency: 'USD',
+                duration: duration,
+                duration_unit: durationUnit,
+                symbol: symbol,
+                barrier: barrier
+            };
+
+            ws.send(JSON.stringify(proposalReq));
+        }
+
+        function buyContract(proposalId, askPrice) {
+            if (!isRunning || !ws) return;
+            ws.send(JSON.stringify({ buy: proposalId, price: askPrice }));
+        }
+
+        function subscribeOpenContract(contractId) {
+            if (!ws) return;
+            ws.send(JSON.stringify({ proposal_open_contract: 1, contract_id: contractId, subscribe: 1 }));
+        }
+
+        function updateGlobalStats() {
+            document.getElementById('stat-total-stake').innerText = `$${totalStakeAcc.toFixed(2)}`;
+            document.getElementById('stat-trade-count').innerText = tradeCount;
+            document.getElementById('stat-wl').innerHTML = `<span class="text-emerald-400">${wins}</span> / <span class="text-rose-400">${losses}</span>`;
+            document.getElementById('stat-total-profit').innerText = `$${totalProfit.toFixed(2)}`;
+        }
+
+        function addContractHistory(status, level, type, buyPrice, profit) {
+            const tbody = document.getElementById('contract-tbody');
+            if (tbody.querySelector('td[colspan]')) tbody.innerHTML = '';
+            const statusClass = status === 'Win' ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold';
+            const profitClass = profit >= 0 ? 'text-emerald-400' : 'text-rose-400';
+
+            const row = document.createElement('tr');
+            row.className = 'hover:bg-slate-900/50 border-b border-slate-800/60';
+            row.innerHTML = `
+                <td class="p-2 ${statusClass}">${status}</td>
+                <td class="p-2">Level ${level}</td>
+                <td class="p-2">${type}</td>
+                <td class="p-2">$${buyPrice.toFixed(2)}</td>
+                <td class="p-2 ${profitClass}">$${profit.toFixed(2)}</td>
+            `;
+            tbody.insertBefore(row, tbody.firstChild);
+        }
+    </script>
+</body>
+</html>
